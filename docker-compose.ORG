@@ -1,0 +1,78 @@
+version: "3.3"
+
+services:
+
+  traefik:
+    image: "traefik:v2.9"
+    container_name: "traefik"
+    command:
+      - "--log.level=DEBUG"
+      - "--log.filePath=/log/traefik.log"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      #- "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.myresolver.acme.email=${EMAIL}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "443:443"
+      - "8080:8080"
+    volumes:
+      - "./letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "./log/:/log/"
+
+  user-service:
+    build:
+      context: ./user
+    image: user-service-flask
+    container_name: "user-service"
+    environment:
+      - FLASK_APP=app.py
+    ports:
+      - 5001:5001
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.user-service.rule=Host(`DOMAIN_NAME`)
+        && Path(`/user`)"
+      - "traefik.http.routers.user-service.entrypoints=websecure"
+      - "traefik.http.routers.user-service.tls.certresolver=myresolver"
+
+  payment-service:
+    build:
+      context: ./payment
+    image: payment-service-flask
+    container_name: "payment-service"
+    environment:
+      - FLASK_APP=app.py
+    ports:
+      - 5002:5002
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.payment-service.rule=Host(`DOMAIN_NAME`)
+        && Path(`/payment`)"
+      - "traefik.http.routers.payment-service.entrypoints=websecure"
+      - "traefik.http.routers.payment-service.tls.certresolver=myresolver"
+
+  report-service:
+    build:
+      context: ./report
+    image: report-service-flask
+    container_name: "report-service"
+    environment:
+      - FLASK_APP=app.py
+    ports:
+      - 5003:5003
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.report-service.rule=Host(`DOMAIN_NAME`)
+        "
+      - "traefik.http.routers.report-service.entrypoints=websecure"
+      - "traefik.http.routers.report-service.tls.certresolver=myresolver"
+
+      - "traefik.http.routers.report-service.middlewares=add-context"
+
+      - "traefik.http.middlewares.add-context.redirectregex.regex=^https:\\/\\/([^\\/]+)\\/?$$"
+      - "traefik.http.middlewares.add-context.redirectregex.replacement=https://$$1/report"

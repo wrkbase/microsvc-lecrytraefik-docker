@@ -1,0 +1,13 @@
+   
+$ ./ec2software.sh
+$ sudo apt install make
+$ sudo apt install net-tools
+$ docker ps -a ; docker stop $(docker ps -qa) ; docker images ls -a ; docker container ls -la ; docker volume ls ; docker container ls -la | awk '{print $1}' | grep -v "CONTAINER" | xargs docker container rm  ; docker images -a | awk '{print $3}' | grep -v "IMAGE" | xargs docker image remove ; docker container ls -la ; docker images -a ; docker volume rm $(docker volume ls -q) ;  docker image prune -af ; docker container prune -af ; docker volume prune -af ; docker system prune -af ; docker ps -a ; docker images ls -a ; docker container ls -la ; docker volume ls
+  
+$  docker compose down; docker compose build report-service ; docker compose up -d
+  
+$  wget -qO- http://instance-data/latest/meta-data/public-ipv4; echo
+
+$ docker compose up -d
+
+$ docker logs traefik
